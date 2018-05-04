@@ -11,7 +11,7 @@ from .api import (
 
 def create_parser():
     parser = argparse.ArgumentParser(
-        prog='textar', add_help=False, description='Textar is a simple and readable archive format')
+        prog='textar', add_help=True, description='Textar is a simple and readable archive format')
 
     parser.add_argument('out_file', help='Please provide a valid filepath for output archive')
     parser.add_argument('file_list', nargs='+', help='Please provide a valid filepath(s)')
