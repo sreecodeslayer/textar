@@ -13,9 +13,9 @@ def create_parser():
     parser = argparse.ArgumentParser(
         prog='textar', add_help=True, description='Textar is a simple and readable archive format')
 
-    parser.add_argument('out_file', help='Please provide a valid filepath for output archive')
-    parser.add_argument('file_list', nargs='+', help='Please provide a valid filepath(s)')
-
+    parser.add_argument('out_file', nargs='?', help='Please provide a valid filepath for output archive')
+    parser.add_argument('file_list', nargs='*', help='Please provide a valid filepath(s)')
+    parser.add_argument('-l', '--list', help='Please provide a valid textar (.txr) file')    
     return parser
 
 def cli(args=sys.argv[1:]):
@@ -25,4 +25,9 @@ def cli(args=sys.argv[1:]):
     if not args:
         parser.print_help()
         return
-    make_archive(args)
+
+    if args.list:
+        print('\nListing contents in %s' % args.list)
+        sys.exit(0)
+    else:
+        make_archive(args)
