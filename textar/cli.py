@@ -6,7 +6,8 @@ import argparse
 import sys
 from .api import (
     make_archive,
-    extract
+    extract,
+    list_archive
 )
 
 def create_parser():
@@ -27,7 +28,6 @@ def cli(args=sys.argv[1:]):
         return
 
     if args.list:
-        print('\nListing contents in %s' % args.list)
-        sys.exit(0)
+        list_archive(args.list)
     else:
         make_archive(args)

@@ -44,5 +44,27 @@ def make_archive(args):
             return False
     return True
 
+def list_archive(txr_file):
+    try:
+        with open(txr_file) as inp:
+            file_content = inp.readlines()
+            # check if file is a valid txr (should start with key-val pair for boundary)
+            if file_content[0].startswith('boundary: '):
+                boundary = file_content[0].split(' ',1)[-1].strip()
+            else:
+                print('File seems to be an invaild Textar file.')
+                print('Exiting ...')
+                sys.exit(0)
+
+            # get boundary value
+            for line in file_content:
+                if line.startswith(boundary):
+                    filename = line.split(' ', 1)[-1].strip()
+                    print(filename)
+    except FileNotFoundError as e:
+        print(e)
+        print('Exiting ...')
+        sys.exit(0)
+
 def extract(txr):
     pass
