@@ -3,15 +3,16 @@ A simple textar archiver CLI
 
 ### Installation
 
-```pip install git+https://github.com/sreecodeslayer/textar.git
+```bash
+pip install git+https://github.com/sreecodeslayer/textar.git
 ```
 
 or build from source after cloning
 
 ```bash
-$ git clone https://github.com/sreecodeslayer/textar.git
-$ cd textar
-$ python setup.py install
+git clone https://github.com/sreecodeslayer/textar.git
+cd textar
+python setup.py install
 ```
 
 ### Usage
