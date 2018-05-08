@@ -82,5 +82,21 @@ def list_archive(txr_file):
 
 
 def extract(txr_file):
-    pass
 
+    boundary, file_content = validate_txr(txr_file)
+
+    # get current working dir
+    cwd = os.getcwd()
+    print('Extracting files into %s:\n'%cwd)
+
+    # get boundary value
+    new_file = None
+    for line in file_content:
+        if line.startswith(boundary):
+            filename = line.split(' ', 1)[-1].strip()
+            new_file = os.path.join(cwd, '_'+filename)
+            print(filename)
+        elif new_file:
+            with open(new_file, 'a') as out:
+                out.write(line)
+    print('Extracted')
