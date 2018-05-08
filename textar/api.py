@@ -76,6 +76,7 @@ def validate_txr(filepath):
         print('Exiting ...')
         sys.exit(0)
 
+
 def list_archive(txr_file):
     boundary, file_content = validate_txr(txr_file)
 
@@ -92,7 +93,7 @@ def extract(txr_file):
 
     # get current working dir
     cwd = os.getcwd()
-    print('Extracting files into %s:\n'%cwd)
+    print('Extracting files into %s:\n' % cwd)
 
     # get boundary value
     new_file = None
