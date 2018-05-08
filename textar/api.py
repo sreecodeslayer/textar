@@ -3,6 +3,7 @@ from uuid import uuid4
 import ntpath
 import sys
 
+
 def make_archive(args):
     '''
     Takes in a parsed args instance of ArgumentParser
@@ -14,9 +15,9 @@ def make_archive(args):
     input_files = args.file_list
 
     if os.path.isfile(out_file):
-        print('*'*25)
+        print('*' * 25)
         print('An archive already exists under this name, this will be overwritten...')
-        print('*'*25)
+        print('*' * 25)
 
     print('Archiving into %s ...' % out_file)
 
@@ -27,7 +28,7 @@ def make_archive(args):
             # Start of a file, add boundary line
             filename = ntpath.basename(input_file)
 
-            boundary_line = '%s %s\n' % (boundary,filename)
+            boundary_line = '%s %s\n' % (boundary, filename)
             out.write(boundary_line)
 
             # Copy contents from input file
@@ -44,27 +45,42 @@ def make_archive(args):
             return False
     return True
 
-def list_archive(txr_file):
+
+def validate_txr(filepath):
+    '''
+    check if file is a valid txr (should start with key-val pair for
+    boundary)
+
+    Exits command if invalid
+    or
+    Returns a tuple (boundary, content)
+    '''
+    boundary = content = ''
     try:
-        with open(txr_file) as inp:
-            file_content = inp.readlines()
-            # check if file is a valid txr (should start with key-val pair for boundary)
-            if file_content[0].startswith('boundary: '):
-                boundary = file_content[0].split(' ',1)[-1].strip()
+        with open(filepath) as inp:
+            content = inp.readlines()
+            if content[0].startswith('boundary: '):
+                boundary = content[0].split(' ', 1)[-1].strip()
             else:
                 print('File seems to be an invaild Textar file.')
                 print('Exiting ...')
                 sys.exit(0)
-
-            # get boundary value
-            for line in file_content:
-                if line.startswith(boundary):
-                    filename = line.split(' ', 1)[-1].strip()
-                    print(filename)
+        return boundary, content
     except FileNotFoundError as e:
         print(e)
         print('Exiting ...')
         sys.exit(0)
 
-def extract(txr):
+def list_archive(txr_file):
+    boundary, file_content = validate_txr(txr_file)
+
+    # get boundary value
+    for line in file_content:
+        if line.startswith(boundary):
+            filename = line.split(' ', 1)[-1].strip()
+            print(filename)
+
+
+def extract(txr_file):
     pass
+
