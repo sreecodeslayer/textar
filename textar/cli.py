@@ -4,11 +4,7 @@ CLI
 
 import argparse
 import sys
-from .api import (
-    make_archive,
-    extract,
-    list_archive
-)
+from .api import Textar
 
 
 def create_parser():
@@ -36,8 +32,12 @@ def cli(args=sys.argv[1:]):
         return
 
     if args.list:
-        list_archive(args.list)
+        txr = Textar(args.list, cli=True)
+
+        txr.list_archive()
     elif args.extract:
-        extract(args.extract)
+        txr = Textar(args.extract, cli=True)
+        txr.extract()
     else:
-        make_archive(args)
+        txr = Textar(args.out_file, input_files = args.file_list, cli=True)
+        txr.make_archive()
