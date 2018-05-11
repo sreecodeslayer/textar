@@ -3,16 +3,20 @@ from uuid import uuid4
 import ntpath
 import sys
 from .errors import (
-    ArchiveExistsError
-    ArchiveNotFound
+    ArchiveExistsError,
+    ArchiveNotFound,
+    InvalidTextar
 )
 
 
 class Textar:
-    def __init__(self, txr_file=None, input_files=[]):
+
+    def __init__(self, txr_file, input_files=[], cli=False):
         self.txr_file = txr_file
         self._boundary = uuid4().hex
         self._input_files = set(input_files)
+        self.cli = cli
+        self.validate_txr()
 
     def __repr__(self):
         return '<Textar : %s>' % self.txr_file
@@ -23,44 +27,26 @@ class Textar:
 
     @property
     def count(self):
-        return len(self._input_files)
+        return len(self.list_archive())
 
-    def list_archive(self):
-        boundary, file_content = self.validate_txr()
+    def make_archive(self, overwrite=True):
 
-        # get boundary value
-        for line in file_content:
-            if line.startswith(boundary):
-                filename = line.split(' ', 1)[-1].strip()
-                print(filename)
-
-    def make_archive(self, out, files, overwrite=True, cli=False):
-        '''
-        Takes in a parsed args instance of ArgumentParser
-        '''
-        # Get out file
-        self.out_file = out
-
-        # Get list of files to archive
-        input_files = files
-
-        if os.path.isfile(self.out_file):
-            if cli:
+        if os.path.isfile(self.txr_file):
+            if self.cli:
                 print('*' * 25)
                 print('An archive already exists under this name,'
                       ' this will be overwritten...')
                 print('*' * 25)
-                overwrite = False
-                print('Archiving into %s ...' % out_file)
+                print('Archiving into %s ...' % self.txr_file)
 
-            if not overwrite:
+            elif not overwrite:
                 raise ArchiveExistsError(
                     'An archive already exists under this name')
 
         try:
-            with open(self.out_file, 'w') as out:
+            with open(self.txr_file, 'w') as out:
                 out.write('boundary: %s\n\n' % self.boundary)
-                for input_file in input_files:
+                for input_file in self._input_files:
                     # Start of a file, add boundary line
                     filename = ntpath.basename(input_file)
 
@@ -85,7 +71,7 @@ class Textar:
             print('Exiting ...')
             sys.exit(0)
 
-    def validate_txr(self, cli=False):
+    def validate_txr(self):
         '''
         check if file is a valid txr (should start with key-val pair for
         boundary)
@@ -101,46 +87,58 @@ class Textar:
                 if content[0].startswith('boundary: '):
                     boundary = content[0].split(' ', 1)[-1].strip()
                 else:
-                    if cli:
+                    if self.cli:
                         print('File seems to be an invaild Textar file.')
                         print('Exiting ...')
                         sys.exit(0)
+                    raise InvalidTextar(
+                        '<File %s> is an invaild Textar file.' % self.txr_file)
             return boundary, content
         except FileNotFoundError as e:
-            if cli:
+            if self.cli:
                 print(e)
                 print('Exiting ...')
                 sys.exit(0)
             else:
-                raise ArchiveNotFound('The archive does not exist. Please provide a correct path')
+                raise ArchiveNotFound(
+                    'The archive does not exist.') from e
 
 
-def list_archive(txr_file):
-    boundary, file_content = validate_txr(txr_file)
+    def list_archive(self):
+        boundary, file_content = self.validate_txr()
 
-    # get boundary value
-    for line in file_content:
-        if line.startswith(boundary):
-            filename = line.split(' ', 1)[-1].strip()
-            print(filename)
+        # get boundary value
+        _files = []
+        for line in file_content:
+            if line.startswith(boundary):
+                filename = line.split(' ', 1)[-1].strip()
+                if self.cli:
+                    print(filename)
+                else:
+                    _files.append(filename)
+        return _files
 
 
-def extract(txr_file):
+    def extract(self, extract_to=None, cli=False):
 
-    boundary, file_content = validate_txr(txr_file)
+        boundary, file_content = self.validate_txr()
 
-    # get current working dir
-    cwd = os.getcwd()
-    print('Extracting files into %s:\n' % cwd)
+        # get current working dir
+        cwd = extract_to if extract_to else os.getcwd() 
+        
+        if self.cli:
+            print('Extracting files into %s:\n' % cwd)
 
-    # get boundary value
-    new_file = None
-    for line in file_content:
-        if line.startswith(boundary):
-            filename = line.split(' ', 1)[-1].strip()
-            new_file = os.path.join(cwd, filename)
-            print(filename)
-        elif new_file:
-            with open(new_file, 'a') as out:
-                out.write(line)
-    print('Extracted')
+        # get boundary value
+        new_file = None
+        for line in file_content:
+            if line.startswith(boundary):
+                filename = line.split(' ', 1)[-1].strip()
+                new_file = os.path.join(cwd, filename)
+                if self.cli:
+                    print(filename)
+            elif new_file:
+                with open(new_file, 'a') as out:
+                    out.write(line)
+        if cli:
+            print('Extracted')

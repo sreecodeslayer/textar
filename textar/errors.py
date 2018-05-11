@@ -3,3 +3,6 @@ class ArchiveNotFound(Exception):
 
 class ArchiveExistsError(Exception):
 	pass
+
+class InvalidTextar(Exception):
+	pass
