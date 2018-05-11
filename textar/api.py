@@ -2,79 +2,117 @@ import os
 from uuid import uuid4
 import ntpath
 import sys
+from .errors import (
+    ArchiveExistsError
+    ArchiveNotFound
+)
 
 
-def make_archive(args):
-    '''
-    Takes in a parsed args instance of ArgumentParser
-    '''
-    # Get out file
-    out_file = args.out_file
+class Textar:
+    def __init__(self, txr_file=None, input_files=[]):
+        self.txr_file = txr_file
+        self._boundary = uuid4().hex
+        self._input_files = set(input_files)
 
-    # Get list of files to archive
-    input_files = args.file_list
+    def __repr__(self):
+        return '<Textar : %s>' % self.txr_file
 
-    if os.path.isfile(out_file):
-        print('*' * 25)
-        print('An archive already exists under this name, this will be overwritten...')
-        print('*' * 25)
+    @property
+    def boundary(self):
+        return self._boundary
 
-    print('Archiving into %s ...' % out_file)
+    @property
+    def count(self):
+        return len(self._input_files)
 
-    boundary = uuid4().hex
-    try:
-        with open(out_file, 'w') as out:
-            out.write('boundary: %s\n\n' % boundary)
-            for input_file in input_files:
-                # Start of a file, add boundary line
-                filename = ntpath.basename(input_file)
+    def list_archive(self):
+        boundary, file_content = self.validate_txr()
 
-                boundary_line = '%s %s\n' % (boundary, filename)
-                out.write(boundary_line)
+        # get boundary value
+        for line in file_content:
+            if line.startswith(boundary):
+                filename = line.split(' ', 1)[-1].strip()
+                print(filename)
 
-                # Copy contents from input file
-                print('Add file `%s` to archive' % filename)
-                try:
-                    with open(input_file) as inp:
-                        out.writelines(inp.readlines())
-                except FileNotFoundError as e:
-                    print(e)
-                    os.remove(out_file)
-                    print('Exiting ...')
-                    sys.exit(0)
-            else:
-                return False
-        return True
-    except FileNotFoundError as e:
-        print(e)
-        print('Exiting ...')
-        sys.exit(0)
+    def make_archive(self, out, files, overwrite=True, cli=False):
+        '''
+        Takes in a parsed args instance of ArgumentParser
+        '''
+        # Get out file
+        self.out_file = out
 
+        # Get list of files to archive
+        input_files = files
 
-def validate_txr(filepath):
-    '''
-    check if file is a valid txr (should start with key-val pair for
-    boundary)
+        if os.path.isfile(self.out_file):
+            if cli:
+                print('*' * 25)
+                print('An archive already exists under this name,'
+                      ' this will be overwritten...')
+                print('*' * 25)
+                overwrite = False
+                print('Archiving into %s ...' % out_file)
 
-    Exits command if invalid
-    or
-    Returns a tuple (boundary, content)
-    '''
-    boundary = content = ''
-    try:
-        with open(filepath) as inp:
-            content = inp.readlines()
-            if content[0].startswith('boundary: '):
-                boundary = content[0].split(' ', 1)[-1].strip()
-            else:
-                print('File seems to be an invaild Textar file.')
+            if not overwrite:
+                raise ArchiveExistsError(
+                    'An archive already exists under this name')
+
+        try:
+            with open(self.out_file, 'w') as out:
+                out.write('boundary: %s\n\n' % self.boundary)
+                for input_file in input_files:
+                    # Start of a file, add boundary line
+                    filename = ntpath.basename(input_file)
+
+                    boundary_line = '%s %s\n' % (self.boundary, filename)
+                    out.write(boundary_line)
+
+                    # Copy contents from input file
+                    print('Add file `%s` to archive' % filename)
+                    try:
+                        with open(input_file) as inp:
+                            out.writelines(inp.readlines())
+                    except FileNotFoundError as e:
+                        print(e)
+                        os.remove(out_file)
+                        print('Exiting ...')
+                        sys.exit(0)
+                else:
+                    return False
+            return True
+        except FileNotFoundError as e:
+            print(e)
+            print('Exiting ...')
+            sys.exit(0)
+
+    def validate_txr(self, cli=False):
+        '''
+        check if file is a valid txr (should start with key-val pair for
+        boundary)
+
+        Exits command if invalid for cli
+        or
+        Returns a tuple (boundary, content)
+        '''
+        boundary = content = ''
+        try:
+            with open(self.txr_file) as inp:
+                content = inp.readlines()
+                if content[0].startswith('boundary: '):
+                    boundary = content[0].split(' ', 1)[-1].strip()
+                else:
+                    if cli:
+                        print('File seems to be an invaild Textar file.')
+                        print('Exiting ...')
+                        sys.exit(0)
+            return boundary, content
+        except FileNotFoundError as e:
+            if cli:
+                print(e)
                 print('Exiting ...')
                 sys.exit(0)
-        return boundary, content
-    except FileNotFoundError as e:
-        print(e)
-        print('Exiting ...')
-        sys.exit(0)
+            else:
+                raise ArchiveNotFound('The archive does not exist. Please provide a correct path')
 
 
 def list_archive(txr_file):
