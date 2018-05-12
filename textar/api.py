@@ -33,8 +33,28 @@ class Textar:
     def count(self):
         return len(self.list_archive())
 
-    def add_file(self, input_file):
-        pass
+    def _add_file(self, boundary, out, input_file):
+        # Start of a file, add boundary line
+        filename = ntpath.basename(input_file)
+
+        boundary_line = '\n%s %s\n' % (boundary, filename)
+        out.write(boundary_line)
+
+        # Copy contents from input file
+        if self._cli:
+            print('Add file `%s` to archive' % filename)
+        try:
+            with open(input_file) as inp:
+                out.writelines(inp.readlines())
+        except FileNotFoundError as e:
+            os.remove(self._txr_file)
+            if self._cli:
+                print(e)
+                print('Exiting ...')
+                sys.exit(0)
+            else:
+                raise
+        
 
     def make_archive(self, overwrite=True):
         '''
@@ -60,25 +80,26 @@ class Textar:
                 out.write('boundary: %s\n' % boundary)
                 for input_file in self._input_files:
                     # Start of a file, add boundary line
-                    filename = ntpath.basename(input_file)
+                    # filename = ntpath.basename(input_file)
 
-                    boundary_line = '\n%s %s\n' % (boundary, filename)
-                    out.write(boundary_line)
+                    # boundary_line = '\n%s %s\n' % (boundary, filename)
+                    # out.write(boundary_line)
 
-                    # Copy contents from input file
-                    if self._cli:
-                        print('Add file `%s` to archive' % filename)
-                    try:
-                        with open(input_file) as inp:
-                            out.writelines(inp.readlines())
-                    except FileNotFoundError as e:
-                        os.remove(out_file)
-                        if self._cli:
-                            print(e)
-                            print('Exiting ...')
-                            sys.exit(0)
-                        else:
-                            raise
+                    # # Copy contents from input file
+                    # if self._cli:
+                    #     print('Add file `%s` to archive' % filename)
+                    # try:
+                    #     with open(input_file) as inp:
+                    #         out.writelines(inp.readlines())
+                    # except FileNotFoundError as e:
+                    #     os.remove(self._txr_file)
+                    #     if self._cli:
+                    #         print(e)
+                    #         print('Exiting ...')
+                    #         sys.exit(0)
+                    #     else:
+                    #         raise
+                    self._add_file(boundary, out, input_file)
             return True
         except FileNotFoundError as e:
             if self._cli:
