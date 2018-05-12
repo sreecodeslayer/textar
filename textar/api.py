@@ -46,7 +46,7 @@ class Textar:
 
         try:
             boundary, file_content = self.validate_txr()
-        except (ArchiveNotFound, InvalidTextar):
+        except (ArchiveNotFound, InvalidTextar, IndexError):
             return []
 
         _files = []
@@ -82,12 +82,15 @@ class Textar:
                 raise
 
     def add_file(self, input_file):
-        with open(self._txr_file,'a') as out:
+        with open(self._txr_file, 'a') as out:
             self._add_file(self._boundary, out, input_file)
 
     def make_archive(self, overwrite=True):
         '''
         Make an archive of all the input files using the `txr_file` location
+        This will overwrite the old archive by default. To add a file to archive use add_file()
+
+        Setting optional argument `overwrite=False` will raise ArchiveExistsError
         '''
 
         if os.path.isfile(self._txr_file):
@@ -151,6 +154,12 @@ class Textar:
                     'The archive does not exist.') from e
 
     def extract(self, extract_to=None):
+        """
+        Extract the txr file to current working directory by default
+
+        Optional arguments:
+        extract_to = Directory path, raises ExtractError
+        """
         try:
             boundary, file_content = self.validate_txr()
         except ArchiveNotFound as e:
