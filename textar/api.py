@@ -128,13 +128,13 @@ class Textar:
                     _files.append(filename)
         return _files
 
-    def extract(self, extract_to=None, cli=False):
+    def extract(self, extract_to=None):
         try:
             boundary, file_content = self.validate_txr()
         except ArchiveNotFound as e:
-            raise ExtractError(e) from None
+            raise ExtractError(e) from None if not self._cli else print(e)
         except InvalidTextar as e:
-            raise
+            raise e if not self._cli else print(e)
 
         # get current working dir
         if extract_to:
@@ -144,7 +144,10 @@ class Textar:
             except FileExistsError:
                 cwd = extract_to
             except FileNotFoundError:
-                raise ExtractError('A directory is required') from None
+                if not self._cli:
+                    raise ExtractError('A directory is required') from None
+                else:
+                    print('ExtractError : A directory is required')
 
         else:
             cwd = os.getcwd()
