@@ -6,7 +6,8 @@ from .errors import (
     ArchiveExistsError,
     ArchiveNotFound,
     InvalidTextar,
-    ExtractError
+    ExtractError,
+    DuplicateFileError
 )
 
 
@@ -31,7 +32,29 @@ class Textar:
 
     @property
     def count(self):
-        return len(self.list_archive())
+        return len(self._list_archive())
+
+    @property
+    def files(self):
+        return self._list_archive()
+
+    def _list_archive(self):
+        '''
+        Find all the files the archive contains
+        returns: list
+        '''
+
+        try:
+            boundary, file_content = self.validate_txr()
+        except (ArchiveNotFound, InvalidTextar):
+            return []
+
+        _files = []
+        for line in file_content:
+            if line.startswith(boundary):
+                filename = line.split(' ', 1)[-1].strip()
+                _files.append(filename)
+        return _files
 
     def _add_file(self, boundary, out, input_file):
         # Start of a file, add boundary line
@@ -54,7 +77,14 @@ class Textar:
                 sys.exit(0)
             else:
                 raise
-        
+
+    def add_file(self, input_file):
+        if input_file in self._list_archive():
+            raise DuplicateFileError(
+                'File already exists in archive. Aborting addition')
+        else:
+            with open(self._txr_file) as out:
+                self._add_file(self.boundary, out, input_file)
 
     def make_archive(self, overwrite=True):
         '''
@@ -79,26 +109,6 @@ class Textar:
             with open(self._txr_file, 'w') as out:
                 out.write('boundary: %s\n' % boundary)
                 for input_file in self._input_files:
-                    # Start of a file, add boundary line
-                    # filename = ntpath.basename(input_file)
-
-                    # boundary_line = '\n%s %s\n' % (boundary, filename)
-                    # out.write(boundary_line)
-
-                    # # Copy contents from input file
-                    # if self._cli:
-                    #     print('Add file `%s` to archive' % filename)
-                    # try:
-                    #     with open(input_file) as inp:
-                    #         out.writelines(inp.readlines())
-                    # except FileNotFoundError as e:
-                    #     os.remove(self._txr_file)
-                    #     if self._cli:
-                    #         print(e)
-                    #         print('Exiting ...')
-                    #         sys.exit(0)
-                    #     else:
-                    #         raise
                     self._add_file(boundary, out, input_file)
             return True
         except FileNotFoundError as e:
@@ -141,24 +151,6 @@ class Textar:
                 raise ArchiveNotFound(
                     'The archive does not exist.') from e
 
-    def list_archive(self):
-        '''
-        Find all the files the archive contains
-        returns: list
-        '''
-
-        try:
-            boundary, file_content = self.validate_txr()
-        except (ArchiveNotFound, InvalidTextar):
-            return []
-
-        _files = []
-        for line in file_content:
-            if line.startswith(boundary):
-                filename = line.split(' ', 1)[-1].strip()
-                _files.append(filename)
-        return _files
-
     def extract(self, extract_to=None):
         try:
             boundary, file_content = self.validate_txr()
@@ -185,7 +177,7 @@ class Textar:
 
         # Clean the cwd for old extracted files if any
 
-        for f in self.list_archive():
+        for f in self._list_archive():
             try:
                 os.remove(os.path.join(cwd, f))
             except FileNotFoundError:

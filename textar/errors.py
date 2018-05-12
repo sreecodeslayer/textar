@@ -12,3 +12,7 @@ class InvalidTextar(Exception):
 
 class ExtractError(Exception):
     pass
+
+
+class DuplicateFileError(Exception):
+    pass
