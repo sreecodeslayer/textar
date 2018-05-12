@@ -15,7 +15,7 @@ class Textar:
 
     def __init__(self, txr_file, input_files=[], cli=False):
         self._txr_file = txr_file
-        self._boundary = uuid4().hex
+        self._boundary = ''
         self._input_files = set(input_files)
         self._cli = cli
 
@@ -59,6 +59,9 @@ class Textar:
     def _add_file(self, boundary, out, input_file):
         # Start of a file, add boundary line
         filename = ntpath.basename(input_file)
+        if filename in self._list_archive():
+            raise DuplicateFileError(
+                'File already exists in archive. Aborting addition')
 
         boundary_line = '\n%s %s\n' % (boundary, filename)
         out.write(boundary_line)
@@ -79,12 +82,8 @@ class Textar:
                 raise
 
     def add_file(self, input_file):
-        if input_file in self._list_archive():
-            raise DuplicateFileError(
-                'File already exists in archive. Aborting addition')
-        else:
-            with open(self._txr_file) as out:
-                self._add_file(self.boundary, out, input_file)
+        with open(self._txr_file,'a') as out:
+            self._add_file(self._boundary, out, input_file)
 
     def make_archive(self, overwrite=True):
         '''
