@@ -1,8 +1,14 @@
 class ArchiveNotFound(Exception):
-	pass
+    pass
+
 
 class ArchiveExistsError(Exception):
-	pass
+    pass
+
 
 class InvalidTextar(Exception):
-	pass
+    pass
+
+
+class ExtractError(Exception):
+    pass
