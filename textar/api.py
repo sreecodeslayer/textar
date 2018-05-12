@@ -37,6 +37,9 @@ class Textar:
         pass
 
     def make_archive(self, overwrite=True):
+        '''
+        Make an archive of all the input files using the `txr_file` location
+        '''
 
         if os.path.isfile(self._txr_file):
             if self._cli:
@@ -53,7 +56,6 @@ class Textar:
         try:
             boundary = uuid4().hex
 
-
             with open(self._txr_file, 'w') as out:
                 out.write('boundary: %s\n' % boundary)
                 for input_file in self._input_files:
@@ -64,26 +66,31 @@ class Textar:
                     out.write(boundary_line)
 
                     # Copy contents from input file
-                    print('Add file `%s` to archive' % filename)
+                    if self._cli:
+                        print('Add file `%s` to archive' % filename)
                     try:
                         with open(input_file) as inp:
                             out.writelines(inp.readlines())
                     except FileNotFoundError as e:
-                        print(e)
                         os.remove(out_file)
-                        print('Exiting ...')
-                        sys.exit(0)
-                else:
-                    return False
+                        if self._cli:
+                            print(e)
+                            print('Exiting ...')
+                            sys.exit(0)
+                        else:
+                            raise
             return True
         except FileNotFoundError as e:
-            print(e)
-            print('Exiting ...')
-            sys.exit(0)
+            if self._cli:
+                print(e)
+                print('Exiting ...')
+                sys.exit(0)
+            raise ArchiveNotFound(
+                'The archive does not exist.') from e
 
     def validate_txr(self):
         '''
-        check if file is a valid txr (should start with key-val pair for
+        Check if file is a valid txr (should start with key-val pair for
         boundary)
 
         Exits command if invalid for cli
@@ -114,13 +121,16 @@ class Textar:
                     'The archive does not exist.') from e
 
     def list_archive(self):
+        '''
+        Find all the files the archive contains
+        returns: list
+        '''
 
         try:
             boundary, file_content = self.validate_txr()
         except (ArchiveNotFound, InvalidTextar):
             return []
 
-        # get boundary value
         _files = []
         for line in file_content:
             if line.startswith(boundary):
@@ -152,15 +162,14 @@ class Textar:
         else:
             cwd = os.getcwd()
 
-
         # Clean the cwd for old extracted files if any
-        
+
         for f in self.list_archive():
             try:
-                os.remove(os.path.join(cwd,f))
+                os.remove(os.path.join(cwd, f))
             except FileNotFoundError:
                 pass
-        
+
         if self._cli:
             print('Extracting files into %s:\n' % cwd)
 
