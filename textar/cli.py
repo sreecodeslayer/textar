@@ -34,7 +34,8 @@ def cli(args=sys.argv[1:]):
     if args.list:
         txr = Textar(args.list, cli=True)
 
-        txr.list_archive()
+        files = txr.list_archive()
+        print(*files, sep = "\n")
     elif args.extract:
         txr = Textar(args.extract, cli=True)
         txr.extract()

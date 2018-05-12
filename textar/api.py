@@ -51,13 +51,16 @@ class Textar:
                     'An archive already exists under this name')
 
         try:
+            boundary = uuid4().hex
+
+
             with open(self._txr_file, 'w') as out:
-                out.write('boundary: %s\n\n' % self.boundary)
+                out.write('boundary: %s\n' % boundary)
                 for input_file in self._input_files:
                     # Start of a file, add boundary line
                     filename = ntpath.basename(input_file)
 
-                    boundary_line = '%s %s\n' % (self.boundary, filename)
+                    boundary_line = '\n%s %s\n' % (boundary, filename)
                     out.write(boundary_line)
 
                     # Copy contents from input file
@@ -122,10 +125,7 @@ class Textar:
         for line in file_content:
             if line.startswith(boundary):
                 filename = line.split(' ', 1)[-1].strip()
-                if self._cli:
-                    print(filename)
-                else:
-                    _files.append(filename)
+                _files.append(filename)
         return _files
 
     def extract(self, extract_to=None):
@@ -152,6 +152,15 @@ class Textar:
         else:
             cwd = os.getcwd()
 
+
+        # Clean the cwd for old extracted files if any
+        
+        for f in self.list_archive():
+            try:
+                os.remove(os.path.join(cwd,f))
+            except FileNotFoundError:
+                pass
+        
         if self._cli:
             print('Extracting files into %s:\n' % cwd)
 
@@ -164,10 +173,7 @@ class Textar:
                 if self._cli:
                     print(filename)
             elif new_file:
-                # Remove old extracted files if any on same name
-                os.remove(new_file)
-
                 with open(new_file, 'a') as out:
                     out.write(line)
-        if cli:
+        if self._cli:
             print('Extracted')
